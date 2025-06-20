@@ -1,0 +1,392 @@
+--[[
+    Script completo para StarterPlayerScripts
+    Combina: Aimbot, ESP, Noclip, Fly
+    Con GUI para activar/desactivar cada función (incluye noclip)
+--]]
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local camera = workspace.CurrentCamera
+
+local localPlayer = Players.LocalPlayer
+
+-- =============================
+-- Configuración inicial
+-- =============================
+
+-- Aimbot
+local aimRadius = 100
+local visualOffsetY = -40
+local aiming = false
+
+-- ESP
+local minSize = 8
+local maxSize = 30
+local maxDistance = 100
+local espTable = {}
+
+-- Noclip
+local noclipEnabled = true -- activado por defecto
+
+-- Fly
+local flying = false
+local speed = 50
+local bodyVelocity = nil
+
+local keysPressed = {
+    W = false,
+    A = false,
+    S = false,
+    D = false,
+    Space = false,
+    LeftShift = false,
+}
+
+-- =============================
+-- Crear GUI principal con botones
+-- =============================
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "MandaX_HackGUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = localPlayer:WaitForChild("PlayerGui")
+
+-- Frame principal
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 180, 0, 180)
+frame.Position = UDim2.new(0, 10, 0, 10)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BackgroundTransparency = 0.3
+frame.BorderSizePixel = 0
+frame.Parent = screenGui
+frame.Active = true
+frame.Draggable = true
+
+-- Título
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 25)
+title.BackgroundTransparency = 1
+title.TextColor3 = Color3.new(1, 1, 1)
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 20
+title.Text = "MandaX Hacks"
+title.Parent = frame
+
+-- Función para crear botones toggle
+local function createToggleButton(text, posY)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -20, 0, 30)
+    btn.Position = UDim2.new(0, 10, 0, posY)
+    btn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.SourceSans
+    btn.TextSize = 18
+    btn.Text = text.." OFF"
+    btn.Parent = frame
+    return btn
+end
+
+local aimbotBtn = createToggleButton("Aimbot", 40)
+local espBtn = createToggleButton("ESP", 75)
+local noclipBtn = createToggleButton("Noclip", 110)
+local flyBtn = createToggleButton("Fly", 145)
+
+-- =============================
+-- Aimbot Setup
+-- =============================
+
+local aimCircle = Instance.new("Frame")
+aimCircle.Size = UDim2.new(0, aimRadius * 2, 0, aimRadius * 2)
+aimCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+aimCircle.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+aimCircle.BackgroundTransparency = 0.6
+aimCircle.BorderSizePixel = 0
+aimCircle.ClipsDescendants = true
+aimCircle.Visible = false
+aimCircle.Parent = screenGui
+
+local uicorner = Instance.new("UICorner")
+uicorner.CornerRadius = UDim.new(1, 0)
+uicorner.Parent = aimCircle
+
+local aimbotEnabled = false
+
+UserInputService.InputBegan:Connect(function(input)
+    if aimbotEnabled and input.UserInputType == Enum.UserInputType.MouseButton2 then
+        aiming = true
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if aimbotEnabled and input.UserInputType == Enum.UserInputType.MouseButton2 then
+        aiming = false
+    end
+end)
+
+local function getClosestPlayerInCircle(mousePos)
+    local closestPlayer = nil
+    local shortestDistance = aimRadius
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= localPlayer and player.Character and player.Character:FindFirstChild("Head") then
+            local head = player.Character.Head
+            local screenPos, onScreen = camera:WorldToViewportPoint(head.Position)
+            if onScreen then
+                local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                if dist <= shortestDistance then
+                    local origin = camera.CFrame.Position
+                    local direction = (head.Position - origin)
+                    local rayParams = RaycastParams.new()
+                    rayParams.FilterDescendantsInstances = {localPlayer.Character}
+                    rayParams.FilterType = Enum.RaycastFilterType.Blacklist
+                    rayParams.IgnoreWater = true
+
+                    local result = workspace:Raycast(origin, direction, rayParams)
+                    if result and result.Instance and result.Instance:IsDescendantOf(player.Character) then
+                        closestPlayer = player
+                        shortestDistance = dist
+                    end
+                end
+            end
+        end
+    end
+
+    return closestPlayer
+end
+
+RunService.RenderStepped:Connect(function()
+    if not aimbotEnabled then
+        aimCircle.Visible = false
+        aiming = false
+        return
+    end
+
+    local mousePos = UserInputService:GetMouseLocation() + Vector2.new(0, visualOffsetY)
+    aimCircle.Position = UDim2.new(0, mousePos.X, 0, mousePos.Y)
+    aimCircle.Visible = true
+
+    if aiming then
+        local target = getClosestPlayerInCircle(mousePos)
+        if target and target.Character and target.Character:FindFirstChild("Head") then
+            local headPos = target.Character.Head.Position
+            camera.CFrame = CFrame.new(camera.CFrame.Position, headPos)
+        end
+    end
+end)
+
+-- =============================
+-- ESP Setup
+-- =============================
+
+local espEnabled = false
+
+local function createESP(player)
+    if not player.Character then return end
+    local head = player.Character:FindFirstChild("Head")
+    if not head then return end
+    if espTable[player] then return end
+
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "ESP_MARKER"
+    billboard.Adornee = head
+    billboard.Size = UDim2.new(0, minSize, 0, minSize)
+    billboard.StudsOffset = Vector3.new(0, 1.5, 0)
+    billboard.AlwaysOnTop = true
+    billboard.Parent = head
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, 0, 1, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    frame.BackgroundTransparency = 0.3
+    frame.BorderSizePixel = 0
+    frame.Parent = billboard
+
+    espTable[player] = billboard
+end
+
+local function updateESP()
+    for player, billboard in pairs(espTable) do
+        if player.Character and player.Character:FindFirstChild("Head") then
+            local headPos = player.Character.Head.Position
+            local localPos = localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") and localPlayer.Character.HumanoidRootPart.Position
+            if localPos then
+                local dist = (headPos - localPos).Magnitude
+                local sizeValue = math.clamp(maxSize - ((dist / maxDistance) * (maxSize - minSize)), minSize, maxSize)
+                billboard.Size = UDim2.new(0, sizeValue, 0, sizeValue)
+            end
+        else
+            -- Personaje murió o desapareció, limpiar ESP
+            if espTable[player] then
+                espTable[player]:Destroy()
+                espTable[player] = nil
+            end
+        end
+    end
+end
+
+local function updateAllESP()
+    if not espEnabled then
+        -- Destruir todos los ESP si desactivado
+        for player, billboard in pairs(espTable) do
+            billboard:Destroy()
+            espTable[player] = nil
+        end
+        return
+    end
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= localPlayer then
+            createESP(player)
+        end
+    end
+end
+
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        wait(1)
+        if espEnabled then
+            createESP(player)
+        end
+    end)
+end)
+
+RunService.RenderStepped:Connect(function()
+    updateAllESP()
+    updateESP()
+end)
+
+-- =============================
+-- Noclip Setup
+-- =============================
+
+local function applyNoclip(character)
+    if not character then return end
+    for _, part in pairs(character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = not noclipEnabled and true or false
+        end
+    end
+end
+
+RunService.Stepped:Connect(function()
+    if noclipEnabled and localPlayer.Character then
+        applyNoclip(localPlayer.Character)
+    end
+end)
+
+localPlayer.CharacterAdded:Connect(function(character)
+    character:WaitForChild("HumanoidRootPart")
+    wait(0.1)
+    applyNoclip(character)
+end)
+
+-- =============================
+-- Fly Setup
+-- =============================
+
+local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+
+    if input.KeyCode == Enum.KeyCode.F then
+        flying = not flying
+        if flying then
+            print("Fly activado")
+        else
+            print("Fly desactivado")
+            if bodyVelocity then
+                bodyVelocity:Destroy()
+                bodyVelocity = nil
+            end
+        end
+    end
+
+    if keysPressed[input.KeyCode.Name] ~= nil then
+        keysPressed[input.KeyCode.Name] = true
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input, gameProcessed)
+    if keysPressed[input.KeyCode.Name] ~= nil then
+        keysPressed[input.KeyCode.Name] = false
+    end
+end)
+
+RunService.Heartbeat:Connect(function()
+    if not flying then return end
+    if not humanoidRootPart or not humanoidRootPart.Parent then return end
+
+    local cameraCFrame = workspace.CurrentCamera.CFrame
+
+    local direction = Vector3.new(0,0,0)
+    if keysPressed.W then direction = direction + cameraCFrame.LookVector end
+    if keysPressed.S then direction = direction - cameraCFrame.LookVector end
+    if keysPressed.A then direction = direction - cameraCFrame.RightVector end
+    if keysPressed.D then direction = direction + cameraCFrame.RightVector end
+    if keysPressed.Space then direction = direction + Vector3.new(0,1,0) end
+    if keysPressed.LeftShift then direction = direction - Vector3.new(0,1,0) end
+
+    if direction.Magnitude > 0 then
+        direction = direction.Unit
+    else
+        direction = Vector3.new(0,0,0)
+    end
+
+    if not bodyVelocity then
+        bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.MaxForce = Vector3.new(1e5,1e5,1e5)
+        bodyVelocity.Parent = humanoidRootPart
+    end
+
+    bodyVelocity.Velocity = direction * speed
+end)
+
+-- =============================
+-- Botones para activar/desactivar
+-- =============================
+
+aimbotBtn.MouseButton1Click:Connect(function()
+    aimbotEnabled = not aimbotEnabled
+    aiming = false
+    aimCircle.Visible = aimbotEnabled
+    aimbotBtn.Text = "Aimbot "..(aimbotEnabled and "ON" or "OFF")
+end)
+
+espBtn.MouseButton1Click:Connect(function()
+    espEnabled = not espEnabled
+    espBtn.Text = "ESP "..(espEnabled and "ON" or "OFF")
+    if not espEnabled then
+        -- Limpiar ESP si se desactiva
+        for player, billboard in pairs(espTable) do
+            billboard:Destroy()
+            espTable[player] = nil
+        end
+    end
+end)
+
+noclipBtn.MouseButton1Click:Connect(function()
+    noclipEnabled = not noclipEnabled
+    noclipBtn.Text = "Noclip "..(noclipEnabled and "ON" or "OFF")
+    -- Aplicar inmediatamente para el personaje actual
+    if localPlayer.Character then
+        applyNoclip(localPlayer.Character)
+    end
+end)
+
+flyBtn.MouseButton1Click:Connect(function()
+    flying = not flying
+    flyBtn.Text = "Fly "..(flying and "ON" or "OFF")
+    if not flying and bodyVelocity then
+        bodyVelocity:Destroy()
+        bodyVelocity = nil
+    end
+end)
+
+-- Inicializar textos con estados iniciales
+aimbotBtn.Text = "Aimbot OFF"
+espBtn.Text = "ESP OFF"
+noclipBtn.Text = "Noclip ON"  -- por defecto activado
+flyBtn.Text = "Fly OFF"
