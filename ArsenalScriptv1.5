@@ -17,8 +17,8 @@ background.Parent = gui
 
 -- Contenedor central
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 400, 0, 150)
-frame.Position = UDim2.new(0.5, -200, 0.5, -75)
+frame.Size = UDim2.new(0, 400, 0, 180)
+frame.Position = UDim2.new(0.5, -200, 0.5, -90)
 frame.BackgroundTransparency = 1
 frame.Parent = gui
 
@@ -43,3 +43,26 @@ message.TextColor3 = Color3.new(1, 1, 1)
 message.Font = Enum.Font.SourceSans
 message.TextSize = 24
 message.Parent = frame
+
+-- Botón para copiar el link del Discord
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0.6, 0, 0, 40)
+button.Position = UDim2.new(0.2, 0, 0, 120)
+button.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+button.Text = "Unirse al Discord"
+button.TextColor3 = Color3.new(1, 1, 1)
+button.Font = Enum.Font.SourceSansBold
+button.TextSize = 20
+button.Parent = frame
+
+-- Acción del botón
+local discordLink = "https://discord.gg/tu-servidor" -- cambia esto por tu enlace real
+
+button.MouseButton1Click:Connect(function()
+    setclipboard(discordLink)
+    game.StarterGui:SetCore("SendNotification", {
+        Title = "MandaX",
+        Text = "Link copiado al portapapeles.",
+        Duration = 4
+    })
+end)
