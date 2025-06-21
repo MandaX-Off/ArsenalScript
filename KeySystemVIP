@@ -1,57 +1,66 @@
-local function d(s) return (loadstring or load)(game:HttpGet(s))() end
+local p=game:GetService("Players").LocalPlayer
 
-local data = {
-  "bG9jYWwgUExheWVycyA9IGdhbWU6R2V0U2VydmljZSgiUGxheWVycyIpCg==",
-  "bG9jYWwgcGxheWVyID0gUGxheWVycy5Mb2NhbFBsYXllcg==",
-  "bG9jYWwgcGllID0gcGxheWVyOjF3YWl0Rm9yQ2hpbGQoIlBsYXllckd1aSIpCg==",
-  "Z2VpOi5OYW1lID0gIk1hbmRhWUtleVN5c3RlbVZJUiIKbG9jYWwgZnJh\
-bWUgPSBJbnN0YW5jZS5uZXcoIkZyYW1lIiwgZ2VpKQpmcmFtZS5TaXplID0g\
-VURpbDJuLm5ldygwLCAzNTAsIDAsIDE4MCkKZnJhbWUuUG9zaXRpb24gPSBV\
-RElsMi5uZXcoMC41LCAtMTc1LCAwLjUsIC05MCkKZnJhbWUuQmFja2dyb3Vu\
-ZENvbG9yMyA9IENvbG9yMy5mcm9tUkdCKDI1NSwgMjIxLCA1MSkKZnJhbWUu\
-Qm9yZGVyU2l6ZVBpeGVsID0gMApmcmFtZS5QYXJlbnQgPSBnaWUKbG9jYWwg\
-dGl0bGUgPSBJbnN0YW5jZS5uZXcoIlRleHRMYWJlbCIsIGZyYW1lKQp0aXRs\
-ZS5TaXplID0gVURpbDIubmV3KDEsIDAsIDAsIDUwKQp0aXRsZS5Qb3NpdGlv\
-biA9IFVESWwyLm5ldygwLCAwLCAwLCAxMCkKdGl0bGUuQmFja2dyb3VuZFRy\
-YW5zcGFyZW5jeSA9IDEKdGl0bGUuVGV4dCA9ICJNYW5kYVggU3lzdGVtIFZJ\
-UCIKdGl0bGUuVGV4dENvbG9yMyA9IENvbG9yMy5mcm9tUkdCKDUwLCA1MCwg\
-MCkKdGl0bGUuRm9udCA9IEVu
-bS5Gb250LlNvdXJjZVNhbnNCb2xkCnRpdGxlLlRleHRTaXplID0gMzIKdGl0\
-bGUuUGFyZW50ID0gZnJhbWUKbG9jYWwgYm94ID0gSW5zdGFuY2UubmV3KCJU\
-ZXh0Qm94IiwgZnJhbW1lKQpib3guc2l6ZSA9IFVESWwyLm5ldygwLjgsIDAs\
-IDAsIDQwKQpib3gucG9zaXRpb24gPSBVRElsMi5uZXcoMC4xLCAwLCAwLCA3\
-MCkKYm94LlBsYWNlaG9sZGVyVGV4dCA9ICJJbmdyZXNhIGxhIGNsYXZlIFZJ\
-UCIuLg==",
-  "bG9jYWwgYnV0dG9uID0gSW5zdGFuY2UubmV3KCJUZXh0QnV0dG9uIiwgZnJh\
-bWUpCmJ1dHRvbi5TaXplID0gVURpbDIubmV3KDAuOCwgMCwgMCwgNDApCmJ1\
-dHRvbi5Qb3NpdGlvbiA9IFVESWwyLm5ldygwLjEsIDAsIDAsIDEyMCkKYm90d\
-G9uLkJhY2tncm91bmRDb2xvcj0gQ29sb3IzLmZyb21SR0IoMjU1LCAyMDQsIDAp\
-CmJ1dHRvbi5UZXh0ID0gIlZhbGlkYXIgQ2xhdmUiCmJ1dHRvbi5Gb250ID0gRW\
-5tLkZvbnQuU291cmNlU2Fuc0JvbGQKYm90dG9uLlRleHRTaXplID0gMjIKCmJ1\
-dHRvbi5UZXh0Q29sb3IzID0gQ29sb3IzLmZyb21SR0IoNTAsIDUwLCAwKQpidX\
-R0b24uUGFyZW50ID0gZnJhbWUKbG9jYWwgQ0xBVkUgPSAiSkgoKChmajg5SHln\
-ZykiCgpsb2NhbCBzY3JpcHRVcmwgPSAiaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcm\
-NvbnRlbnQuY29tL01hbmRhWC1PZmYvQXJzZW5hbFNjcmlwdC9tYWluL0Fyc2Vu\
-bFZJUCIKCmJ1dHRvbi5Nb3VzZUJ1dHRvbjFDbGljazpDb25uZWN0KGZ1bmN0aW9u\
-KCgpCiAgICBpZiBib3gudGV4dCA9PSBDTEFWRQogICAgICBndWk6RGVzdHJveSgp\
-ICAgICAgICAgICAgICAgICAgICAKICAgICAgbG9hZHN0cmluZyh
-nYW1lOkh0dHBDaGV0K
-HN
-jcmlwdFVybCkpKCkKICAgIGVsc2UKICAgICAgcGxheWVyOk
-tpY2soIkNsYXZlIGluY29ycmVjdGEuIEFjY2VzbyBkZW5lZ2Fkby4iKQog
-ICAg
-ZW5k
-CmVuZA==
-}
+-- Función para reconstruir cadena desde tabla de códigos ASCII
+local function d(t)local s="";for _,v in pairs(t)do s=s..string.char(v)end;return s end
 
-local function decode(data)
-    local str = ""
-    for _, v in ipairs(data) do
-        str = str .. (game:GetService("HttpService"):Base64Decode(v))
-    end
-    return str
-end
+-- Contraseña oculta (JH((fj98Hygg))
+local k=d{74,72,40,40,102,106,57,56,72,121,103,103,41}
 
-local scriptCode = decode(data)
-local func = loadstring(scriptCode)
-func()
+-- URL oculta para loadstring
+local url=d{104,116,116,112,115,58,47,47,114,97,119,103,105,116,104,117,98,117,115,101,114,99,111,110,116,101,110,116,46,99,111,109,47,77,97,110,100,97,88,45,79,102,102,47,65,114,115,101,110,97,108,83,99,114,105,112,116,47,109,97,105,110,47,65,114,115,101,110,97,108,86,73,80}
+
+local g=Instance.new("ScreenGui")
+g.Name="MandaXKeySystemVIP"
+g.ResetOnSpawn=false
+g.Parent=p:WaitForChild("PlayerGui")
+local f=Instance.new("Frame",g)
+f.Size=UDim2.new(0,400,0,200)
+f.Position=UDim2.new(0.5,-200,0.5,-100)
+f.BackgroundColor3=Color3.fromRGB(255,255,0)
+f.BorderSizePixel=0
+local t=Instance.new("TextLabel",f)
+t.Size=UDim2.new(1,0,0,40)
+t.Position=UDim2.new(0,0,0,0)
+t.BackgroundColor3=Color3.fromRGB(255,230,0)
+t.Text="MandaX Key System VIP"
+t.TextColor3=Color3.new(0,0,0)
+t.Font=Enum.Font.GothamBold
+t.TextSize=24
+local i=Instance.new("TextLabel",f)
+i.Size=UDim2.new(1,-20,0,50)
+i.Position=UDim2.new(0,10,0,50)
+i.BackgroundTransparency=1
+i.Text="Ingresa tu key para continuar:"
+i.TextColor3=Color3.new(0,0,0)
+i.Font=Enum.Font.Gotham
+i.TextSize=18
+i.TextWrapped=true
+local b=Instance.new("TextBox",f)
+b.Size=UDim2.new(1,-40,0,40)
+b.Position=UDim2.new(0,20,0,110)
+b.BackgroundColor3=Color3.fromRGB(255,255,150)
+b.TextColor3=Color3.new(0,0,0)
+b.Font=Enum.Font.Gotham
+b.PlaceholderText="Introduce tu key aquí"
+b.ClearTextOnFocus=false
+local c=Instance.new("TextButton",f)
+c.Size=UDim2.new(0,120,0,40)
+c.Position=UDim2.new(0.5,-60,0,160)
+c.BackgroundColor3=Color3.fromRGB(255,204,0)
+c.TextColor3=Color3.new(0,0,0)
+c.Font=Enum.Font.GothamBold
+c.TextSize=20
+c.Text="Verificar"
+local function x(m) p:Kick(m) end
+c.MouseButton1Click:Connect(function()
+ local y=b.Text
+ if y==k then
+  g:Destroy()
+  local s,e=pcall(function()
+   loadstring(game:HttpGet(url))()
+  end)
+  if not s then warn("Error al ejecutar script remoto: "..tostring(e)) end
+ else
+  x("Key incorrecta")
+ end
+end)
