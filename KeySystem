@@ -46,12 +46,16 @@ u.TextColor3=Color3.new(1,1,1)
 u.BackgroundColor3=Color3.fromRGB(0,170,255)
 
 local v=b64decode('TUFOZGtv')
-local w=b64decode('aHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL01hbmRhWC1PZmYvQXJzZW5hbFNjcmlwdC9tYWluL0Fyc2VuYWwlJTIwdjIuMQ==')
 
 u.MouseButton1Click:Connect(function()
     if t.Text==v then
         r:Destroy()
-        loadstring(game:HttpGet(w))()
+        local success, err = pcall(function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/MandaX-Off/ArsenalScript/main/Arsenal%20v2.1"))()
+        end)
+        if not success then
+            warn("Error al cargar el script remoto: "..tostring(err))
+        end
     else
         q:Kick(b64decode('Q2xhdmUgaW5jb3JyZWN0YS4='))
     end
