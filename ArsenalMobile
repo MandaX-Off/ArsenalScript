@@ -1,0 +1,357 @@
+-- LocalScript - StarterPlayerScripts
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+local localPlayer = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+
+-- ===================
+-- CONFIGURACIÓN
+-- ===================
+local aimRadius = 100 -- radio del círculo de detección
+local aimPart = "Head" -- parte a la que apuntar
+local flySpeed = 60
+
+-- ===================
+-- VARIABLES GENERALES
+-- ===================
+local aimbotEnabled = false
+local flying = false
+local noclipEnabled = false
+local bodyVelocity = nil
+
+local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local rootPart = character:WaitForChild("HumanoidRootPart")
+
+-- Actualizar referencias al respawnear
+local function setupCharacter(newChar)
+	character = newChar
+	humanoid = character:WaitForChild("Humanoid")
+	rootPart = character:WaitForChild("HumanoidRootPart")
+
+	-- Si estaba volando, reinicia vuelo en nuevo personaje
+	if flying then
+		startFly()
+	end
+
+	-- Si noclip activado, desactivar colisiones
+	if noclipEnabled then
+		disableCollisions()
+		monitorCharacterParts()
+	end
+end
+localPlayer.CharacterAdded:Connect(setupCharacter)
+
+-- ===================
+-- CREAR GUI PRINCIPAL
+-- ===================
+local playerGui = localPlayer:WaitForChild("PlayerGui")
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "MandaXHacksMobileGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = playerGui
+
+-- Fondo semi-transparente negro
+local background = Instance.new("Frame")
+background.Size = UDim2.new(0, 300, 0, 360)
+background.Position = UDim2.new(0, 20, 0, 20)
+background.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+background.BackgroundTransparency = 0.1
+background.BorderSizePixel = 0
+background.AnchorPoint = Vector2.new(0,0)
+background.Parent = screenGui
+background.ClipsDescendants = true
+background.Active = true
+background.Draggable = true
+
+-- Título grande
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 50)
+title.Position = UDim2.new(0, 0, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "MandaX Hacks Mobile"
+title.TextColor3 = Color3.fromRGB(255, 50, 50)
+title.Font = Enum.Font.Bangers
+title.TextSize = 28
+title.Parent = background
+
+-- Función para crear botones con animación y estilo consistente
+local function createButton(text, posY)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, -40, 0, 45)
+	btn.Position = UDim2.new(0, 20, 0, posY)
+	btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+	btn.TextColor3 = Color3.new(1,1,1)
+	btn.Font = Enum.Font.SourceSansBold
+	btn.TextSize = 22
+	btn.Text = text
+	btn.AutoButtonColor = true
+	btn.Parent = background
+	
+	btn.MouseEnter:Connect(function()
+		TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(70,70,70)}):Play()
+	end)
+	btn.MouseLeave:Connect(function()
+		TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(45,45,45)}):Play()
+	end)
+	return btn
+end
+
+-- ===================
+-- Aimbot
+-- ===================
+-- Círculo rojo para el radio del aimbot en pantalla
+local circle = Instance.new("Frame")
+circle.Size = UDim2.new(0, aimRadius*2, 0, aimRadius*2)
+circle.Position = UDim2.new(0.5, -aimRadius, 0.5, -aimRadius)
+circle.BackgroundColor3 = Color3.new(1, 0, 0)
+circle.BackgroundTransparency = 0.7
+circle.BorderSizePixel = 0
+circle.AnchorPoint = Vector2.new(0.5, 0.5)
+circle.Name = "AimCircle"
+circle.Visible = false
+circle.Parent = screenGui
+
+local aimbotButton = createButton("Aimbot: OFF", 60)
+aimbotButton.MouseButton1Click:Connect(function()
+	aimbotEnabled = not aimbotEnabled
+	aimbotButton.Text = aimbotEnabled and "Aimbot: ON" or "Aimbot: OFF"
+	circle.Visible = aimbotEnabled
+end)
+
+local function getClosestPlayer()
+	local closest = nil
+	local shortestDistance = aimRadius
+
+	for _, player in pairs(Players:GetPlayers()) do
+		if player ~= localPlayer and player.Character and player.Character:FindFirstChild(aimPart) then
+			local head = player.Character[aimPart]
+			local pos, onScreen = camera:WorldToViewportPoint(head.Position)
+
+			if onScreen then
+				local dist = (Vector2.new(pos.X, pos.Y) - Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)).Magnitude
+				if dist < shortestDistance then
+					shortestDistance = dist
+					closest = head
+				end
+			end
+		end
+	end
+
+	return closest
+end
+
+RunService.RenderStepped:Connect(function()
+	if aimbotEnabled then
+		local target = getClosestPlayer()
+		if target then
+			camera.CFrame = CFrame.new(camera.CFrame.Position, target.Position)
+		end
+	end
+end)
+
+-- ===================
+-- ESP
+-- ===================
+local DrawingAvailable, Drawing = pcall(function() return Drawing end)
+local boxes = {}
+
+if not DrawingAvailable then
+	warn("Drawing library not available; ESP will not work.")
+end
+
+RunService.RenderStepped:Connect(function()
+	if not DrawingAvailable then return end
+
+	for _, player in pairs(Players:GetPlayers()) do
+		if player ~= localPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+			local rootPart = player.Character.HumanoidRootPart
+			local pos, onScreen = camera:WorldToViewportPoint(rootPart.Position)
+			if onScreen then
+				if not boxes[player] then
+					local box = Drawing.new("Square")
+					box.Visible = true
+					box.Color = Color3.new(1, 0, 0)
+					box.Thickness = 2
+					box.Filled = false
+					box.Transparency = 1
+					boxes[player] = box
+				end
+				local box = boxes[player]
+				local size = math.clamp(50 / pos.Z, 20, 150)
+				box.Size = Vector2.new(size, size)
+				box.Position = Vector2.new(pos.X - size / 2, pos.Y - size / 2)
+				box.Visible = true
+			else
+				if boxes[player] then
+					boxes[player].Visible = false
+				end
+			end
+		else
+			if boxes[player] then
+				boxes[player].Visible = false
+			end
+		end
+	end
+end)
+
+-- ===================
+-- FLY
+-- ===================
+local flyButton = createButton("Activar Fly", 115)
+
+local function startFly()
+	if flying then return end
+	flying = true
+	humanoid.PlatformStand = true
+
+	if bodyVelocity then
+		bodyVelocity:Destroy()
+	end
+	bodyVelocity = Instance.new("BodyVelocity")
+	bodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+	bodyVelocity.P = 1250
+	bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+	bodyVelocity.Parent = rootPart
+
+	flyButton.Text = "Desactivar Fly"
+end
+
+local function stopFly()
+	flying = false
+	humanoid.PlatformStand = false
+
+	if bodyVelocity then
+		bodyVelocity:Destroy()
+		bodyVelocity = nil
+	end
+
+	flyButton.Text = "Activar Fly"
+end
+
+flyButton.MouseButton1Click:Connect(function()
+	if flying then
+		stopFly()
+	else
+		startFly()
+	end
+end)
+
+RunService.RenderStepped:Connect(function()
+	if flying and bodyVelocity then
+		local camCFrame = camera.CFrame
+		local moveDirection = Vector3.new(0, 0, 0)
+
+		if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+			moveDirection = moveDirection + camCFrame.LookVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+			moveDirection = moveDirection - camCFrame.LookVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+			moveDirection = moveDirection - camCFrame.RightVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+			moveDirection = moveDirection + camCFrame.RightVector
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+			moveDirection = moveDirection + Vector3.new(0, 1, 0)
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+			moveDirection = moveDirection - Vector3.new(0, 1, 0)
+		end
+
+		if moveDirection.Magnitude > 0 then
+			moveDirection = moveDirection.Unit * flySpeed
+		end
+
+		bodyVelocity.Velocity = moveDirection
+	end
+end)
+
+humanoid.Died:Connect(stopFly)
+
+-- ===================
+-- NOCLIP
+-- ===================
+local noclipButton = createButton("Noclip OFF", 170)
+
+local connections = {}
+
+local function disableCollisions()
+	if character then
+		for _, part in pairs(character:GetDescendants()) do
+			if part:IsA("BasePart") and part.CanCollide then
+				part.CanCollide = false
+			end
+		end
+	end
+end
+
+local function enableCollisions()
+	if character then
+		for _, part in pairs(character:GetDescendants()) do
+			if part:IsA("BasePart") then
+				part.CanCollide = true
+			end
+		end
+	end
+end
+
+local function monitorCharacterParts()
+	-- Desconectar conexiones anteriores
+	for _, conn in pairs(connections) do
+		conn:Disconnect()
+	end
+	connections = {}
+
+	if not character then return end
+
+	table.insert(connections, character.DescendantAdded:Connect(function(part)
+		if noclipEnabled and part:IsA("BasePart") then
+			part.CanCollide = false
+		end
+	end))
+end
+
+local function startNoclip()
+	noclipEnabled = true
+	noclipButton.Text = "Noclip ON"
+	disableCollisions()
+	monitorCharacterParts()
+end
+
+local function stopNoclip()
+	noclipEnabled = false
+	noclipButton.Text = "Noclip OFF"
+	enableCollisions()
+	for _, conn in pairs(connections) do
+		conn:Disconnect()
+	end
+	connections = {}
+end
+
+noclipButton.MouseButton1Click:Connect(function()
+	if noclipEnabled then
+		stopNoclip()
+	else
+		startNoclip()
+	end
+end)
+
+RunService.Stepped:Connect(function()
+	if noclipEnabled and character then
+		for _, part in pairs(character:GetDescendants()) do
+			if part:IsA("BasePart") and part.CanCollide then
+				part.CanCollide = false
+			end
+		end
+	end
+end)
+
+humanoid.Died:Connect(stopNoclip)
