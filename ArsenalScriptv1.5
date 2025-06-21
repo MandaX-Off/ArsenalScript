@@ -2,28 +2,34 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
+-- Elimina otras interfaces con el mismo nombre
+if playerGui:FindFirstChild("MandaXUpdateNotice") then
+    playerGui.MandaXUpdateNotice:Destroy()
+end
+
 -- Crear la GUI principal
 local gui = Instance.new("ScreenGui")
 gui.Name = "MandaXUpdateNotice"
+gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
 gui.Parent = playerGui
 
 -- Fondo negro semi-transparente
 local background = Instance.new("Frame")
 background.Size = UDim2.new(1, 0, 1, 0)
-background.Position = UDim2.new(0, 0, 0, 0)
 background.BackgroundColor3 = Color3.new(0, 0, 0)
 background.BackgroundTransparency = 0.7
 background.Parent = gui
 
--- Contenedor central
+-- Marco central
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 400, 0, 200)
 frame.Position = UDim2.new(0.5, -200, 0.5, -100)
 frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 frame.BorderSizePixel = 0
-frame.Parent = gui
+frame.Parent = background
 
--- Título: "MandaX Hacks"
+-- Título
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 50)
 title.Position = UDim2.new(0, 0, 0, 10)
@@ -34,50 +40,44 @@ title.Font = Enum.Font.SourceSansBold
 title.TextSize = 36
 title.Parent = frame
 
--- Mensaje: "Nueva Actualización en el Discord"
-local msg = Instance.new("TextLabel")
-msg.Size = UDim2.new(1, -40, 0, 50)
-msg.Position = UDim2.new(0, 20, 0, 70)
-msg.BackgroundTransparency = 1
-msg.Text = "Nueva Actualización en el Discord"
-msg.TextColor3 = Color3.new(1, 1, 1)
-msg.Font = Enum.Font.SourceSans
-msg.TextSize = 24
-msg.TextWrapped = true
-msg.Parent = frame
+-- Mensaje
+local message = Instance.new("TextLabel")
+message.Size = UDim2.new(1, -40, 0, 50)
+message.Position = UDim2.new(0, 20, 0, 70)
+message.BackgroundTransparency = 1
+message.Text = "Nueva Actualización en el Discord"
+message.TextColor3 = Color3.new(1, 1, 1)
+message.Font = Enum.Font.SourceSans
+message.TextSize = 24
+message.TextWrapped = true
+message.Parent = frame
 
--- Botón "Unirse al Discord"
+-- Botón Discord
 local button = Instance.new("TextButton")
 button.Size = UDim2.new(0.6, 0, 0, 40)
 button.Position = UDim2.new(0.2, 0, 0, 130)
-button.BackgroundColor3 = Color3.fromRGB(114, 137, 218) -- Discord purple
-button.Text = "  Unirse al Discord"
+button.BackgroundColor3 = Color3.fromRGB(114, 137, 218) -- Color morado de Discord
+button.Text = "💬 Unirse al Discord"
 button.TextColor3 = Color3.new(1, 1, 1)
 button.Font = Enum.Font.SourceSansBold
 button.TextSize = 20
-button.TextXAlignment = Enum.TextXAlignment.Left
 button.Parent = frame
 
--- Icono de Discord (simulado con un emoji unicode)
-local icon = Instance.new("TextLabel")
-icon.Size = UDim2.new(0, 40, 0, 40)
-icon.Position = UDim2.new(0, 10, 0, 130)
-icon.BackgroundTransparency = 1
-icon.Text = "💬" -- puedes cambiarlo por otro emoji si prefieres
-icon.TextColor3 = Color3.new(1, 1, 1)
-icon.Font = Enum.Font.SourceSansBold
-icon.TextSize = 22
-icon.ZIndex = 2
-icon.Parent = frame
-
--- Acción del botón
+-- Link de Discord
 local discordLink = "https://discord.gg/9Yj55zUZHb"
 
+-- Acción del botón
 button.MouseButton1Click:Connect(function()
-    setclipboard(discordLink)
-    game.StarterGui:SetCore("SendNotification", {
-        Title = "MandaX",
-        Text = "Link copiado al portapapeles",
-        Duration = 5
-    })
+    if setclipboard then
+        setclipboard(discordLink)
+        pcall(function()
+            game.StarterGui:SetCore("SendNotification", {
+                Title = "MandaX",
+                Text = "Link copiado al portapapeles.",
+                Duration = 5
+            })
+        end)
+    else
+        warn("Este ejecutor no soporta copiar al portapapeles.")
+    end
 end)
