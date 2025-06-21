@@ -1,66 +1,78 @@
-local p=game:GetService("Players").LocalPlayer
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
--- Función para reconstruir cadena desde tabla de códigos ASCII
-local function d(t)local s="";for _,v in pairs(t)do s=s..string.char(v)end;return s end
+local KEY = "JH((fj98Hygg)"
 
--- Contraseña oculta (JH((fj98Hygg))
-local k=d{74,72,40,40,102,106,57,56,72,121,103,103,41}
+local URL = "https://raw.githubusercontent.com/MandaX-Off/ArsenalScript/main/ArsenalVIP"
 
--- URL oculta para loadstring
-local url=d{104,116,116,112,115,58,47,47,114,97,119,103,105,116,104,117,98,117,115,101,114,99,111,110,116,101,110,116,46,99,111,109,47,77,97,110,100,97,88,45,79,102,102,47,65,114,115,101,110,97,108,83,99,114,105,112,116,47,109,97,105,110,47,65,114,115,101,110,97,108,86,73,80}
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "MandaXKeySystemVIP"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
-local g=Instance.new("ScreenGui")
-g.Name="MandaXKeySystemVIP"
-g.ResetOnSpawn=false
-g.Parent=p:WaitForChild("PlayerGui")
-local f=Instance.new("Frame",g)
-f.Size=UDim2.new(0,400,0,200)
-f.Position=UDim2.new(0.5,-200,0.5,-100)
-f.BackgroundColor3=Color3.fromRGB(255,255,0)
-f.BorderSizePixel=0
-local t=Instance.new("TextLabel",f)
-t.Size=UDim2.new(1,0,0,40)
-t.Position=UDim2.new(0,0,0,0)
-t.BackgroundColor3=Color3.fromRGB(255,230,0)
-t.Text="MandaX Key System VIP"
-t.TextColor3=Color3.new(0,0,0)
-t.Font=Enum.Font.GothamBold
-t.TextSize=24
-local i=Instance.new("TextLabel",f)
-i.Size=UDim2.new(1,-20,0,50)
-i.Position=UDim2.new(0,10,0,50)
-i.BackgroundTransparency=1
-i.Text="Ingresa tu key para continuar:"
-i.TextColor3=Color3.new(0,0,0)
-i.Font=Enum.Font.Gotham
-i.TextSize=18
-i.TextWrapped=true
-local b=Instance.new("TextBox",f)
-b.Size=UDim2.new(1,-40,0,40)
-b.Position=UDim2.new(0,20,0,110)
-b.BackgroundColor3=Color3.fromRGB(255,255,150)
-b.TextColor3=Color3.new(0,0,0)
-b.Font=Enum.Font.Gotham
-b.PlaceholderText="Introduce tu key aquí"
-b.ClearTextOnFocus=false
-local c=Instance.new("TextButton",f)
-c.Size=UDim2.new(0,120,0,40)
-c.Position=UDim2.new(0.5,-60,0,160)
-c.BackgroundColor3=Color3.fromRGB(255,204,0)
-c.TextColor3=Color3.new(0,0,0)
-c.Font=Enum.Font.GothamBold
-c.TextSize=20
-c.Text="Verificar"
-local function x(m) p:Kick(m) end
-c.MouseButton1Click:Connect(function()
- local y=b.Text
- if y==k then
-  g:Destroy()
-  local s,e=pcall(function()
-   loadstring(game:HttpGet(url))()
-  end)
-  if not s then warn("Error al ejecutar script remoto: "..tostring(e)) end
- else
-  x("Key incorrecta")
- end
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 400, 0, 200)
+frame.Position = UDim2.new(0.5, -200, 0.5, -100)
+frame.BackgroundColor3 = Color3.fromRGB(255, 255, 0)
+frame.BorderSizePixel = 0
+frame.Parent = screenGui
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
+title.Position = UDim2.new(0, 0, 0, 0)
+title.BackgroundColor3 = Color3.fromRGB(255, 230, 0)
+title.Text = "MandaX Key System VIP"
+title.TextColor3 = Color3.new(0, 0, 0)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 24
+title.Parent = frame
+
+local infoText = Instance.new("TextLabel")
+infoText.Size = UDim2.new(1, -20, 0, 50)
+infoText.Position = UDim2.new(0, 10, 0, 50)
+infoText.BackgroundTransparency = 1
+infoText.Text = "Ingresa tu key para continuar:"
+infoText.TextColor3 = Color3.new(0, 0, 0)
+infoText.Font = Enum.Font.Gotham
+infoText.TextSize = 18
+infoText.TextWrapped = true
+infoText.Parent = frame
+
+local textBox = Instance.new("TextBox")
+textBox.Size = UDim2.new(1, -40, 0, 40)
+textBox.Position = UDim2.new(0, 20, 0, 110)
+textBox.BackgroundColor3 = Color3.fromRGB(255, 255, 150)
+textBox.TextColor3 = Color3.new(0, 0, 0)
+textBox.Font = Enum.Font.Gotham
+textBox.PlaceholderText = "Introduce tu key aquí"
+textBox.ClearTextOnFocus = false
+textBox.Parent = frame
+
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0, 120, 0, 40)
+button.Position = UDim2.new(0.5, -60, 0, 160)
+button.BackgroundColor3 = Color3.fromRGB(255, 204, 0)
+button.TextColor3 = Color3.new(0, 0, 0)
+button.Font = Enum.Font.GothamBold
+button.TextSize = 20
+button.Text = "Verificar"
+button.Parent = frame
+
+local function kickPlayer(msg)
+    LocalPlayer:Kick(msg)
+end
+
+button.MouseButton1Click:Connect(function()
+    local inputKey = textBox.Text
+    if inputKey == KEY then
+        screenGui:Destroy()
+        local success, err = pcall(function()
+            loadstring(game:HttpGet(URL))()
+        end)
+        if not success then
+            warn("Error al ejecutar el script remoto: ".. tostring(err))
+        end
+    else
+        kickPlayer("Key incorrecta")
+    end
 end)
