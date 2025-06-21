@@ -1,0 +1,57 @@
+local function d(s) return (loadstring or load)(game:HttpGet(s))() end
+
+local data = {
+  "bG9jYWwgUExheWVycyA9IGdhbWU6R2V0U2VydmljZSgiUGxheWVycyIpCg==",
+  "bG9jYWwgcGxheWVyID0gUGxheWVycy5Mb2NhbFBsYXllcg==",
+  "bG9jYWwgcGllID0gcGxheWVyOjF3YWl0Rm9yQ2hpbGQoIlBsYXllckd1aSIpCg==",
+  "Z2VpOi5OYW1lID0gIk1hbmRhWUtleVN5c3RlbVZJUiIKbG9jYWwgZnJh\
+bWUgPSBJbnN0YW5jZS5uZXcoIkZyYW1lIiwgZ2VpKQpmcmFtZS5TaXplID0g\
+VURpbDJuLm5ldygwLCAzNTAsIDAsIDE4MCkKZnJhbWUuUG9zaXRpb24gPSBV\
+RElsMi5uZXcoMC41LCAtMTc1LCAwLjUsIC05MCkKZnJhbWUuQmFja2dyb3Vu\
+ZENvbG9yMyA9IENvbG9yMy5mcm9tUkdCKDI1NSwgMjIxLCA1MSkKZnJhbWUu\
+Qm9yZGVyU2l6ZVBpeGVsID0gMApmcmFtZS5QYXJlbnQgPSBnaWUKbG9jYWwg\
+dGl0bGUgPSBJbnN0YW5jZS5uZXcoIlRleHRMYWJlbCIsIGZyYW1lKQp0aXRs\
+ZS5TaXplID0gVURpbDIubmV3KDEsIDAsIDAsIDUwKQp0aXRsZS5Qb3NpdGlv\
+biA9IFVESWwyLm5ldygwLCAwLCAwLCAxMCkKdGl0bGUuQmFja2dyb3VuZFRy\
+YW5zcGFyZW5jeSA9IDEKdGl0bGUuVGV4dCA9ICJNYW5kYVggU3lzdGVtIFZJ\
+UCIKdGl0bGUuVGV4dENvbG9yMyA9IENvbG9yMy5mcm9tUkdCKDUwLCA1MCwg\
+MCkKdGl0bGUuRm9udCA9IEVu
+bS5Gb250LlNvdXJjZVNhbnNCb2xkCnRpdGxlLlRleHRTaXplID0gMzIKdGl0\
+bGUuUGFyZW50ID0gZnJhbWUKbG9jYWwgYm94ID0gSW5zdGFuY2UubmV3KCJU\
+ZXh0Qm94IiwgZnJhbW1lKQpib3guc2l6ZSA9IFVESWwyLm5ldygwLjgsIDAs\
+IDAsIDQwKQpib3gucG9zaXRpb24gPSBVRElsMi5uZXcoMC4xLCAwLCAwLCA3\
+MCkKYm94LlBsYWNlaG9sZGVyVGV4dCA9ICJJbmdyZXNhIGxhIGNsYXZlIFZJ\
+UCIuLg==",
+  "bG9jYWwgYnV0dG9uID0gSW5zdGFuY2UubmV3KCJUZXh0QnV0dG9uIiwgZnJh\
+bWUpCmJ1dHRvbi5TaXplID0gVURpbDIubmV3KDAuOCwgMCwgMCwgNDApCmJ1\
+dHRvbi5Qb3NpdGlvbiA9IFVESWwyLm5ldygwLjEsIDAsIDAsIDEyMCkKYm90d\
+G9uLkJhY2tncm91bmRDb2xvcj0gQ29sb3IzLmZyb21SR0IoMjU1LCAyMDQsIDAp\
+CmJ1dHRvbi5UZXh0ID0gIlZhbGlkYXIgQ2xhdmUiCmJ1dHRvbi5Gb250ID0gRW\
+5tLkZvbnQuU291cmNlU2Fuc0JvbGQKYm90dG9uLlRleHRTaXplID0gMjIKCmJ1\
+dHRvbi5UZXh0Q29sb3IzID0gQ29sb3IzLmZyb21SR0IoNTAsIDUwLCAwKQpidX\
+R0b24uUGFyZW50ID0gZnJhbWUKbG9jYWwgQ0xBVkUgPSAiSkgoKChmajg5SHln\
+ZykiCgpsb2NhbCBzY3JpcHRVcmwgPSAiaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcm\
+NvbnRlbnQuY29tL01hbmRhWC1PZmYvQXJzZW5hbFNjcmlwdC9tYWluL0Fyc2Vu\
+bFZJUCIKCmJ1dHRvbi5Nb3VzZUJ1dHRvbjFDbGljazpDb25uZWN0KGZ1bmN0aW9u\
+KCgpCiAgICBpZiBib3gudGV4dCA9PSBDTEFWRQogICAgICBndWk6RGVzdHJveSgp\
+ICAgICAgICAgICAgICAgICAgICAKICAgICAgbG9hZHN0cmluZyh
+nYW1lOkh0dHBDaGV0K
+HN
+jcmlwdFVybCkpKCkKICAgIGVsc2UKICAgICAgcGxheWVyOk
+tpY2soIkNsYXZlIGluY29ycmVjdGEuIEFjY2VzbyBkZW5lZ2Fkby4iKQog
+ICAg
+ZW5k
+CmVuZA==
+}
+
+local function decode(data)
+    local str = ""
+    for _, v in ipairs(data) do
+        str = str .. (game:GetService("HttpService"):Base64Decode(v))
+    end
+    return str
+end
+
+local scriptCode = decode(data)
+local func = loadstring(scriptCode)
+func()
