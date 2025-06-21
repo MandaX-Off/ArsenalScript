@@ -1,351 +1,45 @@
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
-local uis = game:GetService("UserInputService")
-local runService = game:GetService("RunService")
-local contextActionService = game:GetService("ContextActionService")
-local workspace = game:GetService("Workspace")
+local playerGui = player:WaitForChild("PlayerGui")
 
--- Crear GUI principal
-local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-gui.Name = "MultiCheatMenu"
+-- Crear ScreenGui
+local gui = Instance.new("ScreenGui")
+gui.Name = "MandaXUpdateNotice"
+gui.Parent = playerGui
 
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 200, 0, 270)
-frame.Position = UDim2.new(0, 20, 0, 20)
-frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-frame.BorderSizePixel = 0
-frame.Active = true
-frame.Draggable = true
+-- Fondo negro semi-transparente
+local background = Instance.new("Frame")
+background.Size = UDim2.new(1, 0, 1, 0)
+background.Position = UDim2.new(0, 0, 0, 0)
+background.BackgroundColor3 = Color3.new(0, 0, 0)
+background.BackgroundTransparency = 0.7
+background.Parent = gui
 
-local function createButton(text, yPos)
-    local btn = Instance.new("TextButton", frame)
-    btn.Size = UDim2.new(0, 160, 0, 50)
-    btn.Position = UDim2.new(0, 20, 0, yPos)
-    btn.Text = text
-    btn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-    btn.TextColor3 = Color3.new(1, 1, 1)
-    btn.Font = Enum.Font.SourceSansBold
-    btn.TextSize = 22
-    btn.BorderSizePixel = 0
-    btn.AutoButtonColor = true
-    return btn
-end
+-- Contenedor central
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 400, 0, 150)
+frame.Position = UDim2.new(0.5, -200, 0.5, -75)
+frame.BackgroundTransparency = 1
+frame.Parent = gui
 
--------------------
--- VUELO
--------------------
-local flying = false
-local speed = 2.5
-local dir = Vector3.zero
-local hrp = nil
+-- Título en blanco y negrita
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 50)
+title.Position = UDim2.new(0, 0, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "MandaX Hacks"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 36
+title.Parent = frame
 
-local flyBtn = createButton("Activar Vuelo", 10)
-
-uis.InputBegan:Connect(function(input, gpe)
-	if gpe then return end
-	if flying then
-		if input.KeyCode == Enum.KeyCode.W then dir += Vector3.new(0, 0, -1) end
-		if input.KeyCode == Enum.KeyCode.S then dir += Vector3.new(0, 0, 1) end
-		if input.KeyCode == Enum.KeyCode.A then dir += Vector3.new(-1, 0, 0) end
-		if input.KeyCode == Enum.KeyCode.D then dir += Vector3.new(1, 0, 0) end
-		if input.KeyCode == Enum.KeyCode.Space then dir += Vector3.new(0, 1, 0) end
-		if input.KeyCode == Enum.KeyCode.LeftControl then dir += Vector3.new(0, -1, 0) end
-	end
-end)
-
-uis.InputEnded:Connect(function(input, gpe)
-	if gpe then return end
-	if flying then
-		if input.KeyCode == Enum.KeyCode.W then dir -= Vector3.new(0, 0, -1) end
-		if input.KeyCode == Enum.KeyCode.S then dir -= Vector3.new(0, 0, 1) end
-		if input.KeyCode == Enum.KeyCode.A then dir -= Vector3.new(-1, 0, 0) end
-		if input.KeyCode == Enum.KeyCode.D then dir -= Vector3.new(1, 0, 0) end
-		if input.KeyCode == Enum.KeyCode.Space then dir -= Vector3.new(0, 1, 0) end
-		if input.KeyCode == Enum.KeyCode.LeftControl then dir -= Vector3.new(0, -1, 0) end
-	end
-end)
-
-runService.Heartbeat:Connect(function()
-	if flying and hrp and dir.Magnitude > 0 then
-		local move = workspace.CurrentCamera.CFrame:VectorToWorldSpace(dir).Unit
-		hrp.CFrame = hrp.CFrame + move * speed
-	end
-end)
-
-flyBtn.MouseButton1Click:Connect(function()
-	if not hrp then
-		local char = player.Character or player.CharacterAdded:Wait()
-		hrp = char:WaitForChild("HumanoidRootPart")
-	end
-	flying = not flying
-	flyBtn.Text = flying and "Desactivar Vuelo" or "Activar Vuelo"
-	flyBtn.BackgroundColor3 = flying and Color3.fromRGB(255, 60, 60) or Color3.fromRGB(0, 170, 255)
-end)
-
--------------------
--- AIMBOT
--------------------
-local aimbotActive = false
-local aimbotEnabled = false
-
-local crosshair = Instance.new("Frame", gui)
-crosshair.Size = UDim2.new(0, 10, 0, 10)
-crosshair.Position = UDim2.new(0.5, -5, 0.5, -5)
-crosshair.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-crosshair.BorderSizePixel = 0
-crosshair.AnchorPoint = Vector2.new(0.5, 0.5)
-crosshair.BackgroundTransparency = 0.5
-crosshair.Visible = false
-crosshair.ZIndex = 10
-
-local aimbotBtn = createButton("Activar Aimbot", 70)
-
-local function lockMouse()
-    uis.MouseBehavior = Enum.MouseBehavior.LockCenter
-    uis.MouseIconEnabled = false
-    contextActionService:UnbindAction("DisableCameraControl")
-end
-
-local function getClosestTarget(maxAngle)
-    local cam = workspace.CurrentCamera
-    local camPos = cam.CFrame.Position
-    local camLook = cam.CFrame.LookVector
-
-    local closestTarget = nil
-    local closestAngle = maxAngle -- radianes
-
-    for _, plr in pairs(Players:GetPlayers()) do
-        if plr ~= player and plr.Character and plr.Character:FindFirstChild("Head") and plr.Character:FindFirstChild("Humanoid") and plr.Character.Humanoid.Health > 0 then
-            local headPos = plr.Character.Head.Position
-            local dirToTarget = (headPos - camPos).Unit
-            local angle = math.acos(camLook:Dot(dirToTarget))
-
-            if angle < closestAngle then
-                closestAngle = angle
-                closestTarget = plr.Character
-            end
-        end
-    end
-
-    return closestTarget
-end
-
-local function shootThroughWalls()
-    local cam = workspace.CurrentCamera
-    local camPos = cam.CFrame.Position
-    local camLook = cam.CFrame.LookVector
-
-    local target = nil
-    local closestDist = math.huge
-
-    for _, plr in pairs(Players:GetPlayers()) do
-        if plr ~= player and plr.Character and plr.Character:FindFirstChild("Head") and plr.Character:FindFirstChild("Humanoid") and plr.Character.Humanoid.Health > 0 then
-            local headPos = plr.Character.Head.Position
-            local toTarget = headPos - camPos
-            local dot = camLook:Dot(toTarget.Unit)
-
-            if dot > 0.9 then
-                local dist = toTarget.Magnitude
-                if dist < closestDist then
-                    closestDist = dist
-                    target = plr.Character
-                end
-            end
-        end
-    end
-
-    if target then
-        print("Disparando a través de paredes a: "..target.Name)
-        -- Aquí puedes poner la lógica de daño o efectos
-    else
-        print("No hay objetivo para disparar")
-    end
-end
-
-uis.InputBegan:Connect(function(input, gpe)
-    if gpe then return end
-
-    if input.KeyCode == Enum.KeyCode.Z then
-        aimbotActive = not aimbotActive
-        crosshair.Visible = aimbotActive
-        if not aimbotActive then
-            aimbotEnabled = false
-        end
-    end
-
-    if aimbotActive and input.UserInputType == Enum.UserInputType.MouseButton2 then
-        aimbotEnabled = true
-    end
-
-    if aimbotActive and input.UserInputType == Enum.UserInputType.MouseButton1 then
-        shootThroughWalls()
-    end
-end)
-
-uis.InputEnded:Connect(function(input, gpe)
-    if gpe then return end
-    if aimbotActive and input.UserInputType == Enum.UserInputType.MouseButton2 then
-        aimbotEnabled = false
-    end
-end)
-
-runService.RenderStepped:Connect(function()
-    if aimbotEnabled and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        local maxAngle = math.rad(15)
-        local targetChar = getClosestTarget(maxAngle)
-        if targetChar and targetChar:FindFirstChild("Head") then
-            local cam = workspace.CurrentCamera
-            local headPos = targetChar.Head.Position
-            cam.CFrame = CFrame.new(cam.CFrame.Position, headPos)
-
-            crosshair.Size = UDim2.new(0, 20, 0, 20)
-            crosshair.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-            crosshair.BackgroundTransparency = 0.3
-        else
-            crosshair.Size = UDim2.new(0, 10, 0, 10)
-            crosshair.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-            crosshair.BackgroundTransparency = 0.5
-        end
-    else
-        crosshair.Size = UDim2.new(0, 10, 0, 10)
-        crosshair.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-        crosshair.BackgroundTransparency = 0.5
-    end
-end)
-
-aimbotBtn.MouseButton1Click:Connect(function()
-    aimbotActive = not aimbotActive
-    crosshair.Visible = aimbotActive
-    aimbotBtn.Text = aimbotActive and "Desactivar Aimbot" or "Activar Aimbot"
-    aimbotBtn.BackgroundColor3 = aimbotActive and Color3.fromRGB(255, 60, 60) or Color3.fromRGB(0, 170, 255)
-
-    if not aimbotActive then
-        aimbotEnabled = false
-    end
-end)
-
-lockMouse()
-
--------------------
--- ESP
--------------------
-local espActive = false
-local boxes = {}
-
-local espBtn = createButton("Activar ESP", 130)
-
-local colors = {
-    Color3.fromRGB(255, 0, 0),
-    Color3.fromRGB(0, 255, 0),
-    Color3.fromRGB(0, 0, 255),
-    Color3.fromRGB(255, 255, 0),
-    Color3.fromRGB(255, 0, 255),
-    Color3.fromRGB(0, 255, 255)
-}
-
-local function createBox(plr)
-    local box = Instance.new("Frame")
-    box.Size = UDim2.new(0, 50, 0, 100)
-    box.BackgroundTransparency = 0.7
-    box.BorderSizePixel = 2
-    box.Parent = gui
-    box.ZIndex = 10
-    return box
-end
-
-local function updateBox(box, character, color)
-    local head = character:FindFirstChild("Head")
-    if not head then
-        box.Visible = false
-        return
-    end
-
-    local cam = workspace.CurrentCamera
-    local rootPos = head.Position
-    local screenPos, onScreen = cam:WorldToViewportPoint(rootPos)
-
-    if onScreen then
-        box.Visible = true
-        box.Position = UDim2.new(0, screenPos.X - box.Size.X.Offset/2, 0, screenPos.Y - box.Size.Y.Offset/2)
-        box.BorderColor3 = color
-        box.BackgroundColor3 = color
-    else
-        box.Visible = false
-    end
-end
-
-local function clearBoxes()
-    for _, box in pairs(boxes) do
-        box:Destroy()
-    end
-    boxes = {}
-end
-
-espBtn.MouseButton1Click:Connect(function()
-    espActive = not espActive
-    espBtn.Text = espActive and "Desactivar ESP" or "Activar ESP"
-    espBtn.BackgroundColor3 = espActive and Color3.fromRGB(255, 60, 60) or Color3.fromRGB(0, 170, 255)
-
-    if not espActive then
-        clearBoxes()
-    else
-        for _, plr in pairs(Players:GetPlayers()) do
-            if plr ~= player and plr.Character then
-                boxes[plr] = createBox(plr)
-            end
-        end
-    end
-end)
-
-runService.RenderStepped:Connect(function()
-    if espActive then
-        local colorIndex = 1
-        for plr, box in pairs(boxes) do
-            if plr.Character and plr.Character.Parent then
-                updateBox(box, plr.Character, colors[colorIndex])
-                colorIndex = colorIndex + 1
-                if colorIndex > #colors then
-                    colorIndex = 1
-                end
-            else
-                box.Visible = false
-            end
-        end
-    end
-end)
-
-Players.PlayerAdded:Connect(function(plr)
-    if espActive and plr ~= player then
-        boxes[plr] = createBox(plr)
-    end
-end)
-
-Players.PlayerRemoving:Connect(function(plr)
-    if boxes[plr] then
-        boxes[plr]:Destroy()
-        boxes[plr] = nil
-    end
-end)
-
--------------------
--- NOCLIP
--------------------
-local noclip = false
-local noclipBtn = createButton("Activar NoClip", 190)
-
-noclipBtn.MouseButton1Click:Connect(function()
-    noclip = not noclip
-    noclipBtn.Text = noclip and "Desactivar NoClip" or "Activar NoClip"
-    noclipBtn.BackgroundColor3 = noclip and Color3.fromRGB(255, 60, 60) or Color3.fromRGB(0, 170, 255)
-end)
-
-runService.Stepped:Connect(function()
-    if noclip and player.Character then
-        for _, part in pairs(player.Character:GetDescendants()) do
-            if part:IsA("BasePart") and part.CanCollide then
-                part.CanCollide = false
-            end
-        end
-    end
-
-end)
+-- Texto debajo, blanco normal
+local message = Instance.new("TextLabel")
+message.Size = UDim2.new(1, 0, 0, 50)
+message.Position = UDim2.new(0, 0, 0, 60)
+message.BackgroundTransparency = 1
+message.Text = "Nueva Actualización en el Discord"
+message.TextColor3 = Color3.new(1, 1, 1)
+message.Font = Enum.Font.SourceSans
+message.TextSize = 24
+message.Parent = frame
