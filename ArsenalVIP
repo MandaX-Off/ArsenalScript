@@ -1,0 +1,500 @@
+-- Servicios comunes
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
+local Mouse = LocalPlayer:GetMouse()
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Variables de estado para hacks
+local aimbotEnabled = false
+local aimbotNoRecoilEnabled = false
+local espEnabled = false
+local noclipEnabled = false
+local flyEnabled = false
+
+-- Variables configuración
+local aimRadius = 100
+local aimPart = "Head"
+local aimFOV = 100
+local fireSpeed = 0 -- 0 sin retraso
+local infiniteAmmo = true
+local noRecoil = true
+local flyingSpeed = 80
+
+-- Variables auxiliares para hacks
+local aiming = false
+local keys = { W=false, A=false, S=false, D=false, Space=false, Ctrl=false }
+
+-- --------- FUNCIONES COMUNES ------------
+
+local function getGun()
+	local char = LocalPlayer.Character
+	if not char then return nil end
+	for _, tool in pairs(char:GetChildren()) do
+		if tool:IsA("Tool") then
+			return tool
+		end
+	end
+	return nil
+end
+
+local function getClosestEnemyForAimbot()
+	local closestPlayer = nil
+	local shortestDistance = aimFOV
+	for _, player in pairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer and player.Team ~= LocalPlayer.Team and player.Character and player.Character:FindFirstChild("Humanoid") and player.Character:FindFirstChild("HumanoidRootPart") then
+			if player.Character.Humanoid.Health > 0 then
+				local pos, onScreen = Camera:WorldToViewportPoint(player.Character.HumanoidRootPart.Position)
+				if onScreen then
+					local dist = (Vector2.new(pos.X, pos.Y) - Vector2.new(Mouse.X, Mouse.Y)).Magnitude
+					if dist < shortestDistance then
+						shortestDistance = dist
+						closestPlayer = player
+					end
+				end
+			end
+		end
+	end
+	return closestPlayer
+end
+
+local function getClosestEnemyForTPKill()
+	local closestEnemy = nil
+	local shortestDistance = math.huge
+	local myTeam = LocalPlayer.Team
+	local myPos = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character.HumanoidRootPart.Position
+	if not myPos then return nil end
+	for _, player in pairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer and player.Team ~= myTeam and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild("Humanoid") then
+			if player.Character.Humanoid.Health > 0 then
+				local distance = (player.Character.HumanoidRootPart.Position - myPos).Magnitude
+				if distance < shortestDistance then
+					shortestDistance = distance
+					closestEnemy = player
+				end
+			end
+		end
+	end
+	return closestEnemy
+end
+
+-- --------- ESP ------------
+
+local function createESPForPart(part, player)
+	if PlayerGui:FindFirstChild("ESP_" .. player.Name) then return end
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = "ESP_" .. player.Name
+	billboard.Adornee = part
+	billboard.Size = UDim2.new(4, 0, 4, 0)
+	billboard.AlwaysOnTop = true
+	billboard.Parent = PlayerGui
+
+	local frame = Instance.new("Frame")
+	frame.BackgroundColor3 = Color3.new(1, 0, 0)
+	frame.BackgroundTransparency = 0.5
+	frame.Size = UDim2.new(1, 0, 1, 0)
+	frame.Parent = billboard
+
+	local textLabel = Instance.new("TextLabel")
+	textLabel.BackgroundTransparency = 1
+	textLabel.Size = UDim2.new(1, 0, 0.3, 0)
+	textLabel.Position = UDim2.new(0, 0, -0.3, 0)
+	textLabel.TextColor3 = Color3.new(1, 1, 1)
+	textLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+	textLabel.TextStrokeTransparency = 0
+	textLabel.TextScaled = true
+	textLabel.Font = Enum.Font.SourceSansBold
+	textLabel.Text = player.Name
+	textLabel.Parent = billboard
+end
+
+local function removeESP(player)
+	local esp = PlayerGui:FindFirstChild("ESP_" .. player.Name)
+	if esp then
+		esp:Destroy()
+	end
+end
+
+local function onCharacterAdded(character, player)
+	local rootPart = character:WaitForChild("HumanoidRootPart", 10)
+	if rootPart and espEnabled then
+		createESPForPart(rootPart, player)
+	end
+end
+
+local function onPlayerAdded(player)
+	if player == LocalPlayer then return end
+	player.CharacterAdded:Connect(function(character)
+		onCharacterAdded(character, player)
+	end)
+	if player.Character and espEnabled then
+		onCharacterAdded(player.Character, player)
+	end
+end
+
+-- Inicializar jugadores actuales
+for _, player in pairs(Players:GetPlayers()) do
+	onPlayerAdded(player)
+end
+Players.PlayerAdded:Connect(onPlayerAdded)
+Players.PlayerRemoving:Connect(function(player)
+	removeESP(player)
+end)
+
+-- --------- Noclip ------------
+
+local function setNoclip(state)
+	local character = LocalPlayer.Character
+	if not character then return end
+	for _, part in pairs(character:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.CanCollide = not state
+		end
+	end
+end
+
+-- --------- Fly ------------
+
+local function getMoveVector()
+	local camera = workspace.CurrentCamera
+	local moveVec = Vector3.new()
+	local forward = camera.CFrame.LookVector
+	local right = camera.CFrame.RightVector
+
+	if keys.W then moveVec = moveVec + forward end
+	if keys.S then moveVec = moveVec - forward end
+	if keys.D then moveVec = moveVec + right end
+	if keys.A then moveVec = moveVec - right end
+	if keys.Space then moveVec = moveVec + Vector3.new(0,1,0) end
+	if keys.Ctrl then moveVec = moveVec - Vector3.new(0,1,0) end
+
+	if moveVec.Magnitude > 0 then
+		moveVec = moveVec.Unit
+	end
+
+	return moveVec
+end
+
+-- --------- GUI ------------
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "MandaX_Hacks_VIP"
+screenGui.Parent = PlayerGui
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 220, 0, 300)
+frame.Position = UDim2.new(0.05, 0, 0.1, 0)
+frame.BackgroundColor3 = Color3.fromRGB(255, 255, 0)
+frame.BackgroundTransparency = 0.7 -- tipo invisible
+frame.BorderSizePixel = 0
+frame.Parent = screenGui
+
+-- Permitir mover GUI
+local dragging = false
+local dragInput
+local dragStart
+local startPos
+
+frame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = frame.Position
+
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+frame.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement then
+		dragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		local delta = input.Position - dragStart
+		frame.Position = UDim2.new(
+			math.clamp(startPos.X.Scale, 0, 1),
+			math.clamp(startPos.X.Offset + delta.X, 0, workspace.CurrentCamera.ViewportSize.X - frame.AbsoluteSize.X),
+			math.clamp(startPos.Y.Scale, 0, 1),
+			math.clamp(startPos.Y.Offset + delta.Y, 0, workspace.CurrentCamera.ViewportSize.Y - frame.AbsoluteSize.Y)
+		)
+	end
+end)
+
+local function createToggleButton(text, initialState, posY, callback)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(0, 180, 0, 30)
+	btn.Position = UDim2.new(0, 10, 0, posY)
+	btn.BackgroundColor3 = Color3.fromRGB(255, 255, 0)
+	btn.TextColor3 = Color3.fromRGB(0, 0, 0)
+	btn.Font = Enum.Font.SourceSansBold
+	btn.TextSize = 18
+	btn.Text = text .. (initialState and ": ON" or ": OFF")
+	btn.Parent = frame
+
+	btn.MouseButton1Click:Connect(function()
+		local newState = not (initialState)
+		initialState = newState
+		btn.Text = text .. (newState and ": ON" or ": OFF")
+		callback(newState)
+	end)
+
+	return btn
+end
+
+-- Titulo
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, 0, 0, 30)
+titleLabel.BackgroundTransparency = 1
+titleLabel.TextColor3 = Color3.fromRGB(0,0,0)
+titleLabel.Font = Enum.Font.SourceSansBold
+titleLabel.TextSize = 22
+titleLabel.Text = "MandaX Hacks VIP"
+titleLabel.Parent = frame
+
+-- Recomendacion TP Kill
+local labelTPKill = Instance.new("TextLabel")
+labelTPKill.Size = UDim2.new(1, -20, 0, 20)
+labelTPKill.Position = UDim2.new(0, 10, 0, 270)
+labelTPKill.BackgroundTransparency = 1
+labelTPKill.TextColor3 = Color3.new(0, 0, 0)
+labelTPKill.Font = Enum.Font.SourceSansBold
+labelTPKill.TextSize = 14
+labelTPKill.Text = "TP Kill: presiona X para teletransportarte al enemigo más cercano"
+labelTPKill.Parent = frame
+
+-- Variables para toggle states
+local aimbotState = false
+local aimbotNoRecoilState = false
+local espState = false
+local noclipState = false
+local flyState = false
+
+-- Toggle Aimbot normal
+createToggleButton("Aimbot Normal", aimbotState, 40, function(state)
+	aimbotState = state
+	aimbotEnabled = state
+end)
+
+-- Toggle Aimbot No Recoil
+createToggleButton("Aimbot No Recoil", aimbotNoRecoilState, 80, function(state)
+	aimbotNoRecoilState = state
+	aimbotNoRecoilEnabled = state
+	noRecoil = state
+end)
+
+-- Toggle ESP
+createToggleButton("ESP", espState, 120, function(state)
+	espState = state
+	espEnabled = state
+	if state then
+		-- Crear ESP para todos los jugadores existentes
+		for _, player in pairs(Players:GetPlayers()) do
+			if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+				createESPForPart(player.Character.HumanoidRootPart, player)
+			end
+		end
+	else
+		-- Remover todos los ESP
+		for _, player in pairs(Players:GetPlayers()) do
+			removeESP(player)
+		end
+	end
+end)
+
+-- Toggle Noclip
+createToggleButton("Noclip (N)", noclipState, 160, function(state)
+	noclipState = state
+	noclipEnabled = state
+	setNoclip(state)
+end)
+
+-- Toggle Fly
+createToggleButton("Fly (F)", flyState, 200, function(state)
+	flyState = state
+	flyEnabled = state
+	local char = LocalPlayer.Character
+	if char then
+		local humanoid = char:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			humanoid.PlatformStand = state
+		end
+	end
+end)
+
+-- Toggle GUI visible with P key
+local guiVisible = true
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+
+	if input.KeyCode == Enum.KeyCode.P then
+		guiVisible = not guiVisible
+		screenGui.Enabled = guiVisible
+	end
+
+	if input.KeyCode == Enum.KeyCode.X then
+		local char = LocalPlayer.Character
+		local root = char and char:FindFirstChild("HumanoidRootPart")
+		local enemy = getClosestEnemyForTPKill()
+		if root and enemy and enemy.Character and enemy.Character:FindFirstChild("HumanoidRootPart") then
+			root.CFrame = enemy.Character.HumanoidRootPart.CFrame * CFrame.new(0,3,0)
+		end
+	end
+
+	-- NUEVO: Toggle Noclip con N
+	if input.KeyCode == Enum.KeyCode.N then
+		noclipState = not noclipState
+		noclipEnabled = noclipState
+		setNoclip(noclipState)
+
+		-- Actualizar texto botón noclip
+		for _, child in pairs(frame:GetChildren()) do
+			if child:IsA("TextButton") and child.Text:find("Noclip") then
+				child.Text = "Noclip (N): " .. (noclipState and "ON" or "OFF")
+			end
+		end
+	end
+
+	-- NUEVO: Toggle Fly con F
+	if input.KeyCode == Enum.KeyCode.F then
+		flyState = not flyState
+		flyEnabled = flyState
+
+		local char = LocalPlayer.Character
+		if char then
+			local humanoid = char:FindFirstChildOfClass("Humanoid")
+			if humanoid then
+				humanoid.PlatformStand = flyState
+			end
+		end
+
+		-- Actualizar texto botón fly
+		for _, child in pairs(frame:GetChildren()) do
+			if child:IsA("TextButton") and child.Text:find("Fly") then
+				child.Text = "Fly (F): " .. (flyState and "ON" or "OFF")
+			end
+		end
+	end
+
+end)
+
+-- Eventos de input para fly keys
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+	if flyEnabled then
+		if input.KeyCode == Enum.KeyCode.W then keys.W = true end
+		if input.KeyCode == Enum.KeyCode.A then keys.A = true end
+		if input.KeyCode == Enum.KeyCode.S then keys.S = true end
+		if input.KeyCode == Enum.KeyCode.D then keys.D = true end
+		if input.KeyCode == Enum.KeyCode.Space then keys.Space = true end
+		if input.KeyCode == Enum.KeyCode.LeftControl then keys.Ctrl = true end
+	end
+end)
+UserInputService.InputEnded:Connect(function(input)
+	if flyEnabled then
+		if input.KeyCode == Enum.KeyCode.W then keys.W = false end
+		if input.KeyCode == Enum.KeyCode.A then keys.A = false end
+		if input.KeyCode == Enum.KeyCode.S then keys.S = false end
+		if input.KeyCode == Enum.KeyCode.D then keys.D = false end
+		if input.KeyCode == Enum.KeyCode.Space then keys.Space = false end
+		if input.KeyCode == Enum.KeyCode.LeftControl then keys.Ctrl = false end
+	end
+end)
+
+-- Aimbot con click derecho
+UserInputService.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton2 then
+		if aimbotEnabled or aimbotNoRecoilEnabled then
+			aiming = true
+		end
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton2 then
+		aiming = false
+	end
+end)
+
+-- Loop principal
+RunService.Heartbeat:Connect(function()
+	local gun = getGun()
+
+	-- Noclip efecto persistente
+	if noclipEnabled then
+		setNoclip(true)
+	end
+
+	if gun then
+		-- FireSpeed
+		if gun:FindFirstChild("Cooldown") then
+			gun.Cooldown.Value = fireSpeed
+		end
+
+		-- Infinite Ammo
+		if infiniteAmmo and gun:FindFirstChild("Ammo") then
+			gun.Ammo.Value = 999
+		end
+
+		-- No Recoil si está activo
+		if aimbotNoRecoilEnabled then
+			local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+			if humanoid then
+				for _, anim in pairs(humanoid:GetPlayingAnimationTracks()) do
+					if anim.Name:lower():find("recoil") or anim.Name:lower():find("shoot") then
+						anim:Stop()
+					end
+				end
+			end
+		end
+	end
+
+	-- Aimbot normal apuntar
+	if aimbotEnabled and aiming then
+		local enemy = getClosestEnemyForAimbot()
+		if enemy and enemy.Character and enemy.Character:FindFirstChild(aimPart) then
+			local part = enemy.Character[aimPart]
+			Camera.CFrame = CFrame.new(Camera.CFrame.Position, part.Position)
+		end
+	end
+
+	-- Aimbot no recoil apuntar muy rápido y pegado a la cabeza
+	if aimbotNoRecoilEnabled and aiming then
+		local enemy = getClosestEnemyForAimbot()
+		if enemy and enemy.Character and enemy.Character:FindFirstChild(aimPart) then
+			local targetPart = enemy.Character[aimPart]
+
+			if enemy.Character.Humanoid.Health > 0 then
+				local viewportPos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
+				if onScreen then
+					local currentCFrame = Camera.CFrame
+					local targetCFrame = CFrame.new(currentCFrame.Position, targetPart.Position)
+					local smoothFactor = 0.95 -- Casi instantáneo, puedes poner 1 para inmediato
+					Camera.CFrame = currentCFrame:Lerp(targetCFrame, smoothFactor)
+				end
+			end
+		end
+	end
+
+	-- Fly movimiento
+	if flyEnabled then
+		local char = LocalPlayer.Character
+		if char then
+			local root = char:FindFirstChild("HumanoidRootPart")
+			if root then
+				local moveVec = getMoveVector()
+				root.Velocity = moveVec * flyingSpeed
+			end
+		end
+	end
+end)
