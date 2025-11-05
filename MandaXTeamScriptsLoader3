@@ -1,0 +1,65 @@
+-- LocalScript: CargarYEjecutar.lua
+-- Colocar en StarterPlayer > StarterPlayerScripts (o ejecutarlo en el cliente)
+
+local PLAYERS = game:GetService("Players")
+local LocalPlayer = PLAYERS.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- URL a ejecutar
+local remoteUrl = "https://raw.githubusercontent.com/MandaX-Off/ArsenalScript/main/MandaXTeamArsenal"
+
+-- Crear ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CargandoGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = PlayerGui
+
+-- Crear Frame centrado
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 300, 0, 80)
+frame.Position = UDim2.new(0.5, -150, 0.5, -40)
+frame.AnchorPoint = Vector2.new(0.5, 0.5)
+frame.BackgroundTransparency = 0.15
+frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+frame.BorderSizePixel = 0
+frame.Parent = screenGui
+
+-- Texto "Cargando..."
+local label = Instance.new("TextLabel")
+label.Size = UDim2.new(1, 0, 1, 0)
+label.Position = UDim2.new(0, 0, 0, 0)
+label.BackgroundTransparency = 1
+label.Text = "Cargando..."
+label.Font = Enum.Font.GothamBold
+label.TextSize = 24
+label.TextColor3 = Color3.fromRGB(255, 255, 255)
+label.Parent = frame
+
+-- Opcional: ligero efecto de aparición
+frame.Position = frame.Position + UDim2.new(0, 0, 0, 20)
+frame.Parent = screenGui
+local tweenService = game:GetService("TweenService")
+local tweenInfo = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local tween = tweenService:Create(frame, tweenInfo, {Position = UDim2.new(0.5, -150, 0.5, -40)})
+pcall(function() tween:Play() end)
+
+-- Mostrar 3 segundos y luego ejecutar
+delay(3, function()
+	-- Remover GUI
+	pcall(function() screenGui:Destroy() end)
+
+	-- Intentar obtener y ejecutar el código remoto (en ambientes donde HttpGet+loadstring está permitido)
+	local ok, err = pcall(function()
+		-- En muchos contextos estándar de Roblox esto NO funcionará por seguridad (HttpGet o loadstring pueden no estar permitidos).
+		-- Si usas un executor que permite estas funciones, esta línea intentará ejecutar el código remoto.
+		local code = game:HttpGet(remoteUrl, true)
+		local fn = loadstring(code)
+		if type(fn) == "function" then
+			fn()
+		end
+	end)
+
+	if not ok then
+		warn("[CargarYEjecutar] No fue posible ejecutar el script remoto:", err)
+	end
+end)
